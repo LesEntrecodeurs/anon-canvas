@@ -24,7 +24,6 @@
     "noUncheckedSideEffectImports": true,
 
     "declaration": true,
-    "jsx": "react-jsx",
     "declarationDir": "./dist/types",
     "emitDeclarationOnly": true,
     "outDir": "dist"

@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { AnonCanvas, type AnonCanvasApi } from "./anon-canvas";
-import example from "/example.png";
+import example from "./assets/example.png";
 
 function App() {
   const ref = useRef<AnonCanvasApi | null>(null);

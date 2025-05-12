@@ -23,6 +23,7 @@ export default defineConfig({
     },
     rollupOptions: {
       external: ["react", "react-dom"],
+      input: "src/anon-canvas.tsx",
       output: {
         globals: {
           react: "React",
