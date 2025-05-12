@@ -2,6 +2,8 @@
 
 **anon-zone** is a reusable React component for drawing and managing mask zones over images. It is designed for applications where anonymizing part of an image is required, such as hiding personal information on medical scans (e.g., ultrasounds).
 
+![AnonCanvas demo](./doc/demo.gif)
+
 ## Features
 
 - Load any image and draw one or more rectangular mask zones
