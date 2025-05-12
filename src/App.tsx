@@ -6,13 +6,7 @@ function App() {
   const ref = useRef<AnonCanvasApi | null>(null);
   return (
     <div>
-      <AnonCanvas
-        imageSrc={example}
-        zoneColor="#363637"
-        ref={ref}
-        width={800}
-        height={800}
-      />
+      <AnonCanvas imageSrc={example} ref={ref} width={500} height={500} />
       <button
         onClick={() => {
           ref.current?.reset();

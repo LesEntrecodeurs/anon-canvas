@@ -28,7 +28,15 @@ export interface AnonCanvasApi {
 
 export const AnonCanvas = forwardRef<AnonCanvasApi, AnonCanvasProps>(
   (
-    { imageSrc, zones, zoneColor = "red", className, width, height, ...props },
+    {
+      imageSrc,
+      zones,
+      zoneColor = "black",
+      className,
+      width,
+      height,
+      ...props
+    },
     ref,
   ) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
