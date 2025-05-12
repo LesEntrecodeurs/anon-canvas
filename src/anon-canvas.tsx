@@ -5,9 +5,11 @@ import {
   useRef,
   useState,
   type ComponentPropsWithoutRef,
+  type MouseEvent,
   type MouseEventHandler,
 } from "react";
 import { AnonZone, type AnonZoneProps, type Point } from "./anon-zone";
+import { drawImage, setupCanvas } from "./utils/canvas";
 
 interface AnonCanvasProps
   extends Omit<ComponentPropsWithoutRef<"canvas">, "width" | "height"> {
@@ -32,10 +34,13 @@ export const AnonCanvas = forwardRef<AnonCanvasApi, AnonCanvasProps>(
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const imageRef = useRef<HTMLImageElement | null>(null);
 
-    const [basePoint, setBasePoint] = useState<Point | null>(null);
+    const [startedDrawingPoint, setStartedDrawingPoint] =
+      useState<Point | null>(null);
     const [anonZones, setAnonZones] = useState<AnonZone[]>(
       zones ? zones.map((zone) => new AnonZone(zone)) : [],
     );
+
+    const [movingZone, setMovingZone] = useState<AnonZone | null>(null);
 
     useEffect(() => {
       if (!canvasRef.current) return;
@@ -43,16 +48,38 @@ export const AnonCanvas = forwardRef<AnonCanvasApi, AnonCanvasProps>(
       const ctx = canvas?.getContext("2d");
 
       if (!ctx || !canvas) return;
+
       const image = new Image();
+      image.crossOrigin = "anonymous";
       image.src = imageSrc;
+      image.alt = "Anon Image";
 
       image.onload = () => {
-        canvas.width = width ?? image.width;
-        canvas.height = height ?? image.height;
-        ctx.drawImage(image, 0, 0);
+        const w = width ?? image.width;
+        const h = height ?? image.height;
+
+        setupCanvas(canvas, w, h);
+        drawImage(image, canvas);
         imageRef.current = image;
       };
     }, [canvasRef.current, width, height, imageSrc]);
+
+    const redrawCanvas = () => {
+      const ctx = canvasRef.current?.getContext("2d");
+      const image = imageRef.current;
+      if (!ctx || !image) return;
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      drawImage(image, canvasRef.current!);
+      ctx.fillStyle = zoneColor;
+      anonZones.forEach((zone) => {
+        ctx.beginPath();
+        ctx.fillRect(zone.x, zone.y, zone.width, zone.height);
+      });
+    };
+
+    useEffect(() => {
+      redrawCanvas();
+    }, [anonZones]);
 
     const saveAnonZone = (zone: AnonZone) => {
       setAnonZones((prev) => [...prev, zone]);
@@ -62,101 +89,124 @@ export const AnonCanvas = forwardRef<AnonCanvasApi, AnonCanvasProps>(
       setAnonZones((prev) => prev.filter((zone) => zone.id !== id));
     };
 
-    const redrawCanvas = () => {
-      const ctx = canvasRef.current?.getContext("2d");
-      const image = imageRef.current;
-      if (!ctx || !image) return;
-      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      ctx.drawImage(image, 0, 0);
-      ctx.fillStyle = zoneColor;
-      anonZones.forEach((zone) => {
-        ctx.beginPath();
-        ctx.fillRect(zone.x, zone.y, zone.width, zone.height);
-      });
+    const getHoveredZone = (point: Point) => {
+      return anonZones.find((zone) => zone.isInside(point));
+    };
+
+    const getCurrentPoint = (e: MouseEvent<HTMLCanvasElement>) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return { x: 0, y: 0 };
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY,
+      };
     };
 
     const handleMouseDown: MouseEventHandler<HTMLCanvasElement> = (e) => {
-      setBasePoint({
-        x: e.clientX - (canvasRef.current?.offsetLeft || 0),
-        y: e.clientY - (canvasRef.current?.offsetTop || 0),
-      });
+      const hoveredZone = getHoveredZone(getCurrentPoint(e));
+
+      if (hoveredZone) {
+        setMovingZone(hoveredZone);
+      } else {
+        setStartedDrawingPoint(getCurrentPoint(e));
+      }
 
       props.onMouseDown?.(e);
     };
 
     const handleMouseUp: MouseEventHandler<HTMLCanvasElement> = (e) => {
-      const currentPoint = {
-        x: e.clientX - (canvasRef.current?.offsetLeft || 0),
-        y: e.clientY - (canvasRef.current?.offsetTop || 0),
-      };
-      saveAnonZone(
-        new AnonZone({
-          x: basePoint?.x || 0,
-          y: basePoint?.y || 0,
-          width: currentPoint.x - (basePoint?.x || 0),
-          height: currentPoint.y - (basePoint?.y || 0),
-        }),
-      );
-      setBasePoint(null);
+      if (startedDrawingPoint) {
+        const currentPoint = getCurrentPoint(e);
+        saveAnonZone(
+          new AnonZone({
+            x: startedDrawingPoint?.x || 0,
+            y: startedDrawingPoint?.y || 0,
+            width: currentPoint.x - (startedDrawingPoint?.x || 0),
+            height: currentPoint.y - (startedDrawingPoint?.y || 0),
+          }),
+        );
+        setStartedDrawingPoint(null);
+      } else if (movingZone) {
+        setMovingZone(null);
+      }
 
       props.onMouseUp?.(e);
     };
 
     const handleMouseLeave: MouseEventHandler<HTMLCanvasElement> = (e) => {
-      if (basePoint) {
+      if (startedDrawingPoint) {
         const currentPoint = {
           x: e.clientX - (canvasRef.current?.offsetLeft || 0),
           y: e.clientY - (canvasRef.current?.offsetTop || 0),
         };
         saveAnonZone(
           new AnonZone({
-            x: basePoint?.x || 0,
-            y: basePoint?.y || 0,
-            width: currentPoint.x - (basePoint?.x || 0),
-            height: currentPoint.y - (basePoint?.y || 0),
+            x: startedDrawingPoint?.x || 0,
+            y: startedDrawingPoint?.y || 0,
+            width: currentPoint.x - (startedDrawingPoint?.x || 0),
+            height: currentPoint.y - (startedDrawingPoint?.y || 0),
           }),
         );
+      } else if (movingZone) {
+        setMovingZone(null);
       }
-      setBasePoint(null);
+      setStartedDrawingPoint(null);
 
       props.onMouseLeave?.(e);
     };
 
     const handleMouseMove: MouseEventHandler<HTMLCanvasElement> = (e) => {
-      if (!basePoint) return;
-
       const ctx = canvasRef.current?.getContext("2d");
-      const image = imageRef.current;
+      const currentPoint = getCurrentPoint(e);
 
-      if (!ctx || !image) return;
+      if (!ctx) return;
 
-      const currentPoint = {
-        x: e.clientX - (canvasRef.current?.offsetLeft || 0),
-        y: e.clientY - (canvasRef.current?.offsetTop || 0),
-      };
+      const hoveredZone = getHoveredZone(getCurrentPoint(e));
+      if (hoveredZone || movingZone) {
+        canvasRef.current!.style.cursor = "pointer";
+      } else {
+        canvasRef.current!.style.cursor = "crosshair";
+      }
 
-      const width = currentPoint.x - basePoint.x;
-      const height = currentPoint.y - basePoint.y;
+      if (startedDrawingPoint) {
+        const width = currentPoint.x - startedDrawingPoint.x;
+        const height = currentPoint.y - startedDrawingPoint.y;
 
-      redrawCanvas();
-      ctx.fillStyle = zoneColor;
-      ctx.beginPath();
-      ctx.fillRect(basePoint.x, basePoint.y, width, height);
+        redrawCanvas();
+        ctx.fillStyle = zoneColor;
+        ctx.beginPath();
+        ctx.fillRect(
+          startedDrawingPoint.x,
+          startedDrawingPoint.y,
+          width,
+          height,
+        );
+      } else if (movingZone) {
+        setAnonZones((prev) =>
+          prev.map((zone) => {
+            if (zone.id === movingZone?.id) {
+              zone.x = currentPoint.x - movingZone.width / 2;
+              zone.y = currentPoint.y - movingZone.height / 2;
+            }
+
+            return zone;
+          }),
+        );
+      }
 
       props.onMouseMove?.(e);
     };
 
     const handleDoubleClick: MouseEventHandler<HTMLCanvasElement> = (e) => {
-      const currentPoint = {
-        x: e.clientX - (canvasRef.current?.offsetLeft || 0),
-        y: e.clientY - (canvasRef.current?.offsetTop || 0),
-      };
+      const currentPoint = getCurrentPoint(e);
 
-      for (const zone of anonZones) {
-        if (zone.isInside(currentPoint)) {
-          deleteAnonZone(zone.id);
-          return;
-        }
+      const hoveredZone = getHoveredZone(currentPoint);
+
+      if (hoveredZone) {
+        deleteAnonZone(hoveredZone.id);
       }
 
       props.onDoubleClick?.(e);
@@ -187,10 +237,6 @@ export const AnonCanvas = forwardRef<AnonCanvasApi, AnonCanvasProps>(
       toBlob,
       toBase64,
     }));
-
-    useEffect(() => {
-      redrawCanvas();
-    }, [anonZones]);
 
     return (
       <canvas

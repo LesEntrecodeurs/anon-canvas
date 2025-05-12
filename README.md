@@ -17,3 +17,5 @@ npm install anon-zone
 # or
 yarn add anon-zone
 ```
+
+## Usage
