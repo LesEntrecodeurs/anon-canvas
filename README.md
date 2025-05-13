@@ -102,3 +102,11 @@ If not set, the canvas will use the image's natural height.
 
 Any other valid props for a native <canvas> element can be passed (e.g. className, onClick, style, etc.).
 This is enabled via React’s ComponentPropsWithoutRef<"canvas">.</canvas>
+
+## API
+
+An instance of the AnonCanvas component exposes the following methods through the ref:
+
+- `toBlob`: Returns a Promise that resolves to a Blob of the anonymized image.
+- `toBase64`: Returns a Promise that resolves to a Base64 string of the anonymized image.
+- `reset`: Resets the canvas to its original state, removing all anonymization zones.
