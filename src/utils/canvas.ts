@@ -1,7 +1,7 @@
 export const setupCanvas = (
   canvas: HTMLCanvasElement,
-  width: number,
-  height: number,
+  width?: number,
+  height?: number,
 ) => {
   const ctx = canvas.getContext("2d");
 
@@ -12,11 +12,13 @@ export const setupCanvas = (
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
 
-  canvas.width = width * deviceRatio;
-  canvas.height = height * deviceRatio;
+  const w = width ?? canvas.clientWidth;
+  const h = height ?? canvas.clientHeight;
+  canvas.width = w * deviceRatio;
+  canvas.style.width = `${w}px`;
 
-  canvas.style.width = `${width}px`;
-  canvas.style.height = `${height}px`;
+  canvas.height = h * deviceRatio;
+  canvas.style.height = `${h}px`;
 
   canvas.style.cursor = "crosshair";
 };
@@ -29,6 +31,7 @@ export const drawImage = (
   if (!ctx) return;
   const w = canvas.width;
   const h = canvas.height;
+
   const canvasRatio = w / h;
   const imageRatio = image.width / image.height;
 

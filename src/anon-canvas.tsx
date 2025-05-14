@@ -63,10 +63,7 @@ export const AnonCanvas = forwardRef<AnonCanvasApi, AnonCanvasProps>(
       image.alt = "Anon Image";
 
       image.onload = () => {
-        const w = width ?? image.width;
-        const h = height ?? image.height;
-
-        setupCanvas(canvas, w, h);
+        setupCanvas(canvas, width, height);
         drawImage(image, canvas);
         imageRef.current = image;
       };
