@@ -18,6 +18,7 @@ interface AnonCanvasProps
   zoneColor?: string;
   width?: number;
   height?: number;
+  objectFit?: "contain" | "cover";
 }
 
 export interface AnonCanvasApi {
@@ -35,6 +36,7 @@ export const AnonCanvas = forwardRef<AnonCanvasApi, AnonCanvasProps>(
       className,
       width,
       height,
+      objectFit = "contain",
       ...props
     },
     ref,
