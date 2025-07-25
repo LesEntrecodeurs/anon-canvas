@@ -19,6 +19,7 @@ interface AnonCanvasProps
   width?: number;
   height?: number;
   objectFit?: "contain" | "cover";
+  onZonesUpdate?: (zones: AnonZone[]) => void;
 }
 
 export interface AnonCanvasApi {
@@ -37,6 +38,8 @@ export const AnonCanvas = forwardRef<AnonCanvasApi, AnonCanvasProps>(
       width,
       height,
       objectFit = "contain",
+		onChange,
+		onZonesUpdate,
       ...props
     },
     ref,
@@ -66,7 +69,7 @@ export const AnonCanvas = forwardRef<AnonCanvasApi, AnonCanvasProps>(
 
       image.onload = () => {
         setupCanvas(canvas, width, height);
-        drawImage(image, canvas);
+        drawImage(image, canvas, objectFit);
         imageRef.current = image;
       };
     }, [canvasRef.current, width, height, imageSrc]);
@@ -76,7 +79,7 @@ export const AnonCanvas = forwardRef<AnonCanvasApi, AnonCanvasProps>(
       const image = imageRef.current;
       if (!ctx || !image) return;
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      drawImage(image, canvasRef.current!);
+      drawImage(image, canvasRef.current!, objectFit);
       ctx.fillStyle = zoneColor;
       anonZones.forEach((zone) => {
         ctx.beginPath();
@@ -86,6 +89,7 @@ export const AnonCanvas = forwardRef<AnonCanvasApi, AnonCanvasProps>(
 
     useEffect(() => {
       redrawCanvas();
+		onZonesUpdate?.(anonZones);
     }, [anonZones]);
 
     const saveAnonZone = (zone: AnonZone) => {
@@ -239,11 +243,11 @@ export const AnonCanvas = forwardRef<AnonCanvasApi, AnonCanvasProps>(
       return canvas.toDataURL("image/png", 1);
     };
 
-    useImperativeHandle(ref, () => ({
-      reset,
-      toBlob,
-      toBase64,
-    }));
+	  useImperativeHandle(ref, () => ({
+		  reset,
+		  toBlob,
+		  toBase64,
+	  }));
 
     return (
       <canvas
@@ -255,6 +259,7 @@ export const AnonCanvas = forwardRef<AnonCanvasApi, AnonCanvasProps>(
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onDoubleClick={handleDoubleClick}
+		onChange={onChange}
       />
     );
   },
