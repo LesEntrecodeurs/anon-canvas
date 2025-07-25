@@ -98,6 +98,11 @@ If not set, the canvas will use the image's natural width.
 The displayed height of the canvas in CSS pixels.
 If not set, the canvas will use the image's natural height.
 
+### `onZonesUpdate` (function) – optional
+
+Callback invoked whenever the anonymization zones change (add, move, delete).
+Receives the current array of zones as an argument.
+
 ### `...rest` – optional
 
 Any other valid props for a native <canvas> element can be passed (e.g. className, onClick, style, etc.).
